@@ -1,0 +1,58 @@
+import pandas as pd 
+import streamlit as st
+import os
+
+def visualiza_estoque(estoque):
+    
+    if os.path.exists('estoque_atualizado.csv'):
+        ver_estoque = pd.read_csv('estoque_atualizado.csv')
+    else:
+        ver_estoque = pd.read_csv('base_original_produtos_naturais.csv')
+
+return ver_estoque
+
+def realiza_venda(produto, qtd_vendido):
+    
+    if os.path.exists('estoque_atualizado.csv'):
+        estoque = pd.read_csv('estoque_atualizado.csv')
+    else:
+        estoque = pd.read_csv('base_original_produtos_naturais.csv')
+        
+    produto_estoque = estoque[estoque['Produto'] == produto]
+    
+    if produto_estoque['Estoque KG'].values[0] >= qtd_vendido:
+        
+        vendas = pd.read_csv('vendas.csv')
+        valor = qtd_vendido * produto_estoque['Preço'].values[0]
+        venda_atual = pd.DataFrame([[produto, qtd_vendido, valor]], columns=vendas.columns)
+        vendas = pd.concat([vendas, venda_atual])
+        vendas.to_csv('vendas.csv', index=False)
+        
+        estoque.loc[estoque['Produto'] == produto, 'Estoque KG'] -= qtd_vendido
+        estoque.to_csv('estoque_atualizado.csv', index=False)
+        return True
+    
+    else:
+        return False
+    
+def relatorio_vendas():
+    
+    estoque = pd.read_csv('vendas.csv')
+    st.write(estoque)
+    
+    valor_total_vendido = estoque['Valor'].sum()
+    valor_total_vendido_kgs = estoque['Qtd_vendido'].sum()
+    numero_total_vendas = estoque['Qtd_vendido'].count()
+    ticket_medio = estoque['Valor'].mean()
+    produtos_mais_vendidos_reais = estoque.groupby('Produto')['Valor'].sum().idmax()
+    produtos_mais_vendidos_kilos = estoque.groupby('Produto')['Qtd_vendido'].sum().idmax()
+    
+    dict_analise = {
+        'valor_total_vendido': valor_total_vendido,
+        'total_vendas': numero_total_vendas,
+        'ticket_medio': ticket_medio,
+        'produtos_mais_vendidos_reais': produtos_mais_vendidos_reais,
+        'produtos_mais_vendidos_kilos': produtos_mais_vendidos_kilos
+    }
+    return dict_analise
+    
